@@ -1,18 +1,23 @@
 require 'singleton'
+require 'sequel'
+require 'yaml'
 require_relative 'router'
 require_relative 'controller'
-require 'pry'
 
 module Simpler
   class Application
 
     include Singleton
 
+    attr_reader :db
+
     def initialize
       @router = Router.new
+      @db = nil
     end
 
     def bootstrap!
+      setup_database
       require_app
       require_routes
     end
@@ -30,6 +35,13 @@ module Simpler
     end
 
     private
+
+    def setup_database
+      database_config = YAML.load_file(Simpler.root.join('config/database.yml'))
+      database_config['database'] = Simpler.root.join(database_config['database'])
+
+      @db = Sequel.connect(database_config)
+    end
 
     def require_app
       Dir["#{Simpler.root}/app/**/*.rb"].each { |file| require file }
